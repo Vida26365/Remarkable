@@ -26,13 +26,21 @@ metadata = get_metadata(path, folder)
 print(metadata["visibleName"], get_metadata(path, metadata["parent"])["visibleName"])
 
 
+# r"0fd6265d-1ef9-4e51-9883-42d0a20d6249\0e401cc3-8c7f-4d0b-918a-e4bdd6347a8f.rm"
+
+
+
+
 # rmc.convert_rm(file, "pdf", metadata["visibleName"] + ".pdf")
 
+rmc 0e401cc3-8c7f-4d0b-918a-e4bdd6347a8f.rm -o sasa.pdf
 
 def get_rm_file_path(path, folder, name):
     return os.path.join(path, folder, name)
 
-rmc.cli.convert_rm(get_rm_file_path(path, folder, rm_files[0]), "pdf", metadata["visibleName"] + ".pdf")
+# rmc.cli.cli(True, "rm", "pdf", "aa.pdf",  )
+
+# rmc.cli.convert_rm(Path(get_rm_file_pat h(path, folder, rm_files[0])), "pdf", Path(metadata["visibleName"] + ".pdf"))
 
 # pdfs = list(map(lambda x: rmc.cli.convert_rm(, "pdf", "page"), rm_files))
 # print(type(pdf))

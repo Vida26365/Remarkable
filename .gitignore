@@ -1,3 +1,9 @@
+0fd6265d-1ef9-4e51-9883-42d0a20d6249/
+test/
+*.rm
+*.pdf
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
