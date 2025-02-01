@@ -2,41 +2,29 @@ import os
 import json
 from PyPDF2 import PdfWriter
 import re
+from spremenljivke import path, kljucna_beseda, folder_out, zacasna_mapa
 
+def remove_klb(name, klb):
+    return re.sub(klb, "", name)
 
-kljucna_beseda = "formule"
-
-zacasna_mapa = "zacansa_mapa"
-
-
-path = r"C:\Users\vidam\AppData\Roaming\remarkable\desktop"
-for (ime, dir, files) in os.walk(path):
-    # print(files)
-    # print("_______________________________")
-    # print(ime)
+def get_metadata(ime):
     metadata_path = ime + ".metadata"
-    # print(metadata_path)
-    # if re.match(r"{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}", ime) == False:
-    #     continue
-        
     if os.path.exists(metadata_path) == False:
-        continue
-    # print(metadata_path)
-    # os.path.join(path, ime + ".metadata")
+        return None
     with open(metadata_path, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
-    visible_name = metadata["visibleName"]
+        return json.load(f)
+def get_content(ime):
+    content_path = ime + ".content"
+    if os.path.exists(content_path) == False:
+        return None
+    with open(content_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+    
+def get_family(metadata):
     parent = metadata["parent"]
     p_name = metadata["visibleName"]
-    
-    if metadata["type"] != "DocumentType":
-        continue
-    
     family = [] # vrstni red je pomemben
-    i = 0 
-    while parent != "" or i>10:
-        family.append(p_name)
-        # print(parent)
+    while parent != "":
         p_path = os.path.join(path, parent + ".metadata")
         if os.path.exists(p_path) == False:
             break
@@ -44,51 +32,44 @@ for (ime, dir, files) in os.walk(path):
             p_metadata = json.load(f)
         parent = p_metadata["parent"]
         p_name = p_metadata["visibleName"]
-        i += 1
-    
+        family.append(p_name)
+        
+def find_klb(name, family, klb):
+    if klb in name:
+        name = remove_klb(name, klb)
+        return True
+    for p in family:
+        if klb in p:
+            p = remove_klb(p, klb)
+            return True
+    return False
+
+def make_pdfs_to_join(ime, sorted_pages):
     pdfs_to_join = []
-    if any([kljucna_beseda in c for c in family]):
-        pass
-        # TODO
-        # for file in files:
-        #     if ".rm" not in file:
-        #         continue
-        #     # dump_path = os.join(path, ime, file + "pdf")
-        #     # print(file)
-        #     dump_path = os.path.join(ime, file + "pdf")
-        #     os.system(f"rmc -t pdf -o {dump_path} {file}")
-        #     pdfs_to_join.append(dump_path)
-            
-    else:
-        for file in files:
-            if kljucna_beseda in visible_name.lower():
-                if not file.endswith(".rm"):
-                    continue
-                file_path = os.path.join(ime, file)
-                dump_file = file.removesuffix(".rm") + ".pdf"
-                dump_path = os.path.join(zacasna_mapa, dump_file)
-                os.makedirs(zacasna_mapa, exist_ok=True)
-                os.system(f"rmc -t pdf -o {dump_path} {file_path}")
-                pdfs_to_join.append(dump_path)
+    for page in sorted_pages:
+        file_path = os.path.join(ime, page["id"] + ".rm")
+        dump_file = page["id"] + ".pdf"
+        dump_path = os.path.join(zacasna_mapa, dump_file)
+        os.makedirs(zacasna_mapa, exist_ok=True)
+        os.system(f"rmc -t pdf -o {dump_path} {file_path}")
+        pdfs_to_join.append(dump_path)
+    return pdfs_to_join
 
-
-    if pdfs_to_join == []:
-        continue
-    
+def join_pdfs(pdfs_to_join, visible_name, family):
     merger = PdfWriter()
 
     for pdf in pdfs_to_join:
         merger.append(pdf)
 
     # family.append(visible_name + ".pdf")
-    write_to_path = os.path.join(*family)
+    family.reverse()
+    write_to_path = os.path.join(folder_out, *family)
     if write_to_path == "":
         write_to_path = "no_folder"
-    # else:
-    #     write_to_path = os.path.join(*family)
+        
     print(family)
+    print(visible_name)
     print("____________________________________")
-    print(write_to_path)
     os.makedirs(write_to_path, exist_ok=True)
     write_to = os.path.join(write_to_path, visible_name + ".pdf")
     merger.write(write_to)
@@ -99,4 +80,39 @@ for (ime, dir, files) in os.walk(path):
             continue
         file_path = os.path.join(zacasna_mapa, file)
         os.remove(file_path)
-    
+    # add metadata here
+
+def pdfjanje():
+    # TODO break down into smaller functions
+    for (ime, _, _) in os.walk(path):
+        content = get_content(ime)           
+        metadata = get_metadata(ime)
+        
+        if content == None or metadata == None:
+            continue
+        if metadata["type"] != "DocumentType":
+            continue
+        
+        
+        
+        visible_name = metadata["visibleName"]
+        family = get_family(metadata)
+        
+        find_klb = find_klb(visible_name, family, kljucna_beseda)
+        if find_klb == False:
+            continue
+        
+        pages = content["cPages"]["pages"] # list of dicts
+        sorted_pages = sorted(pages, key=lambda x: x["idx"]["value"])
+
+        pdfs_to_join = make_pdfs_to_join(ime, sorted_pages)
+
+        if pdfs_to_join == []:
+            continue
+        
+        join_pdfs(pdfs_to_join, visible_name, family)
+        # Add metadata here
+        
+    return
+
+
