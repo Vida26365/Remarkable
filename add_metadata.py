@@ -3,23 +3,26 @@ import time
 import json
 from spremenljivke import folder_out, metadata_file
 
-def parse_folder(path, slovar = None):
-    if slovar == None:
-        slovar = {"files": {}, "folders": {}}
-    for file in os.listdir(path):
-        file_path = os.path.join(path, file)
-        if os.path.isdir(file_path):
-            slovar["folders"][file] = {}
-            slovar["folders"][file]["content"] = (parse_folder(file_path))
-            slovar["folders"][file]["time"] = time.time()
-        else:
-            slovar["files"][file] = {}
-            slovar["files"][file]["time"] = time.time()
-    return slovar
-
-def add_metadata():
-    metadata = parse_folder(folder_out)
+def add_metadata(family, name, mod_time):
     metadata_path = os.path.join(folder_out, metadata_file)
+    if os.path.exists(metadata_path) == False:
+        data = {"files": {}, "folders": {}}
+    else:
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    add_dict(data, name, family, int(mod_time)/1000)
+
     with open(metadata_path, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=4)
+        json.dump(data, f, indent=4)
+    
         
+def add_dict(dict_path, file_name, rest_family, mod_time):
+    if rest_family == []:
+        dict_path["files"][file_name] = {"last modified": mod_time, "convertet time": time.time()} # POZOR: različna formata za čas
+        return
+    folder_name = rest_family[0]
+    
+    if folder_name not in dict_path:
+        dict_path["folders"][folder_name] = {"content": {"folders": {}, "files": {}}}
+    # dict_path["folders"][folder_name]["time"] = time.time()
+    return add_dict(dict_path["folders"][folder_name]["content"], file_name, rest_family[1:], mod_time)

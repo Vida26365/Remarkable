@@ -2,7 +2,9 @@ import os
 import json
 from PyPDF2 import PdfWriter
 import re
-from spremenljivke import path, kljucna_beseda, folder_out, zacasna_mapa
+import time
+from spremenljivke import path, kljucna_beseda, folder_out, zacasna_mapa, ups
+from add_metadata import add_metadata
 
 def remove_klb(name, klb):
     return re.sub(klb, "", name)
@@ -33,8 +35,9 @@ def get_family(metadata):
         parent = p_metadata["parent"]
         p_name = p_metadata["visibleName"]
         family.append(p_name)
+    return family
         
-def find_klb(name, family, klb):
+def find_kljucna_beseda(name, family, klb):
     if klb in name:
         name = remove_klb(name, klb)
         return True
@@ -59,7 +62,11 @@ def join_pdfs(pdfs_to_join, visible_name, family):
     merger = PdfWriter()
 
     for pdf in pdfs_to_join:
-        merger.append(pdf)
+        try:
+            merger.append(pdf)
+        except:
+            merger.append(ups)
+            print("Errror :(")
 
     # family.append(visible_name + ".pdf")
     family.reverse()
@@ -81,9 +88,18 @@ def join_pdfs(pdfs_to_join, visible_name, family):
         file_path = os.path.join(zacasna_mapa, file)
         os.remove(file_path)
     # add metadata here
+    
+def clear_temoporary_folder():
+    for file in os.listdir(zacasna_mapa):
+        if file == "":
+            continue
+        file_path = os.path.join(zacasna_mapa, file)
+        os.remove(file_path)
+    return
 
 def pdfjanje():
-    # TODO break down into smaller functions
+    clear_temoporary_folder()
+    
     for (ime, _, _) in os.walk(path):
         content = get_content(ime)           
         metadata = get_metadata(ime)
@@ -93,12 +109,11 @@ def pdfjanje():
         if metadata["type"] != "DocumentType":
             continue
         
-        
-        
         visible_name = metadata["visibleName"]
         family = get_family(metadata)
+        mod_time = metadata["lastModified"]
         
-        find_klb = find_klb(visible_name, family, kljucna_beseda)
+        find_klb = find_kljucna_beseda(visible_name, family, kljucna_beseda)
         if find_klb == False:
             continue
         
@@ -111,8 +126,14 @@ def pdfjanje():
             continue
         
         join_pdfs(pdfs_to_join, visible_name, family)
+        
+        add_metadata(family, visible_name, mod_time)
         # Add metadata here
         
     return
+
+
+        
+
 
 
