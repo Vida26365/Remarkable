@@ -1,4 +1,4 @@
-kljucna_beseda = " upl"
+kljucna_beseda = "ana"
 
 zacasna_mapa = "zacansa_mapa"
 

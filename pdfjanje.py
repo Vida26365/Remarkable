@@ -4,7 +4,7 @@ from PyPDF2 import PdfWriter
 import re
 import time
 from spremenljivke import path, kljucna_beseda, folder_out, zacasna_mapa, ups
-from add_metadata import add_metadata
+from add_metadata import generate_metadata
 
 def remove_klb(name, klb):
     return re.sub(klb, "", name)
@@ -42,7 +42,7 @@ def find_kljucna_beseda(name, family, klb):
         name = remove_klb(name, klb)
         return True
     for p in family:
-        if klb in p:
+        if klb in p.lower():
             p = remove_klb(p, klb)
             return True
     return False
@@ -98,9 +98,12 @@ def clear_temoporary_folder():
     return
 
 def pdfjanje():
+    i = 0
     clear_temoporary_folder()
     
     for (ime, _, _) in os.walk(path):
+        print("____________________________________")
+        print(ime)
         content = get_content(ime)           
         metadata = get_metadata(ime)
         
@@ -117,6 +120,8 @@ def pdfjanje():
         if find_klb == False:
             continue
         
+        if "cPages" not in content:
+            continue
         pages = content["cPages"]["pages"] # list of dicts
         sorted_pages = sorted(pages, key=lambda x: x["idx"]["value"])
 
@@ -127,7 +132,10 @@ def pdfjanje():
         
         join_pdfs(pdfs_to_join, visible_name, family)
         
-        add_metadata(family, visible_name, mod_time)
+        generate_metadata(i, visible_name, family, mod_time)
+        i += 1
+        
+        # add_metadata(family, visible_name, mod_time)
         # Add metadata here
         
     return
