@@ -3,15 +3,15 @@ import time
 import json
 from spremenljivke import folder_out, metadata_file
 
-def generate_metadata(i, name, family, mod_time):
+def generate_metadata(hash, name, family, mod_time):
     mod_time = int(mod_time)/1000
     metdata_path = os.path.join(folder_out, metadata_file)
     if os.path.exists(metdata_path) == False:
-        data = {i: {"name": name, "family": family, "last modified": mod_time, "convertet time": time.time()}}
+        data = {hash: {"name": name, "family": family, "last modified": mod_time, "convertet time": time.time()}}
     else:
         with open(metdata_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        data[i] = {"name": name, "family": family, "last modified": mod_time, "convertet time": time.time()}
+        data[hash] = {"name": name, "family": family, "last modified": mod_time, "convertet time": time.time()}
     with open(metdata_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
