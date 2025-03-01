@@ -1,30 +1,29 @@
 import os
-import json
 from PyPDF2 import PdfWriter
-# import re
-# import time
-from spremenljivke import path, kljucna_beseda, folder_out, zacasna_mapa, ups
-from add_metadata import generate_metadata
-from pogoji import pogoj, get_family, get_visible_name_brez_klb
-
-def get_metadata(ime):
-    metadata_path = ime + ".metadata"
-    if os.path.exists(metadata_path) == False:
-        return None
-    with open(metadata_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-def get_content(ime):
-    content_path = ime + ".content"
-    if os.path.exists(content_path) == False:
-        return None
-    with open(content_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+from remarkable.spremenljivke import path, folder_out, zacasna_mapa
+from remarkable.pogoji import pogoj
+from remarkable.zvezkanje import get_old_pdf, get_old_pages, ensure_folder_and_metadata_exists
+from remarkable.metadatanje import get_content, get_metadata, get_write_to_path, generate_metadata
 
 
+def clear_temoporary_folder(zacasna_mapa):
+    for file in os.listdir(zacasna_mapa):
+        if file == "":
+            continue
+        file_path = os.path.join(zacasna_mapa, file)
+        os.remove(file_path)
+    return
 
-def make_pdfs_to_join(ime, sorted_pages):
-    pdfs_to_join = []
+def make_pdfs_to_join(ime, sorted_pages, old_pages, metadata):
+    old_pages_hashes = [c["id"] for c in old_pages]
+    old_pdf = get_old_pdf(metadata)
+    if old_pdf  == None:
+        pdfs_to_join = []
+    else:
+        pdfs_to_join = [old_pdf]
     for page in sorted_pages:
+        if page["id"] in old_pages_hashes:
+            continue
         file_path = os.path.join(ime, page["id"] + ".rm")
         dump_file = page["id"] + ".pdf"
         dump_path = os.path.join(zacasna_mapa, dump_file)
@@ -33,91 +32,47 @@ def make_pdfs_to_join(ime, sorted_pages):
         pdfs_to_join.append(dump_path)
     return pdfs_to_join
 
-def join_pdfs(pdfs_to_join, visible_name, family):
+def join_pdfs(pdfs_to_join, metadata):
     merger = PdfWriter()
-
+    # Join pdfs
     for pdf in pdfs_to_join:
         try:
             merger.append(pdf)
         except:
-            merger.append(ups)
+            # merger.append(ups)
             print("Errror :(")
 
-    # family.append(visible_name + ".pdf")
-    family.reverse()
-    write_to_path = os.path.join(folder_out, *family)
-    if write_to_path == "":
-        write_to_path = "no_folder"
-        
-    print(family)
-    print(visible_name)
-    print("____________________________________")
-    os.makedirs(write_to_path, exist_ok=True)
-    # write_to = write_to_path 
-    write_to = os.path.join(write_to_path, visible_name + ".pdf")
-    merger.write(write_to)
+    write_to_file_path = get_write_to_path(metadata)
+    
+    merger.write(write_to_file_path)
     merger.close()
     
-    for file in os.listdir(zacasna_mapa):
-        if file == "":
-            continue
-        file_path = os.path.join(zacasna_mapa, file)
-        os.remove(file_path)
-    # add metadata here
+    clear_temoporary_folder(zacasna_mapa)
     
-def clear_temoporary_folder():
-    for file in os.listdir(zacasna_mapa):
-        if file == "":
-            continue
-        file_path = os.path.join(zacasna_mapa, file)
-        os.remove(file_path)
-    return
-
 def pdfjanje():
-    clear_temoporary_folder()
+    clear_temoporary_folder(zacasna_mapa)
+    ensure_folder_and_metadata_exists(folder_out, "metadata.json")
     
     for (ime, _, _) in os.walk(path):
-        print("____________________________________")
-        print(ime)
         content = get_content(ime)           
         metadata = get_metadata(ime)
         hash = os.path.basename(ime)
         
-        if content == None or metadata == None:
-            continue
-        if metadata["type"] != "DocumentType":
+        if pogoj(metadata, content, hash) == False:
             continue
         
-        # visible_name = metadata["visibleName"]
-        visible_name = get_visible_name_brez_klb(metadata)
-        family = get_family(metadata)
-        mod_time = metadata["lastModified"]
-        
-        # find_klb = find_kljucna_beseda(visible_name, family, kljucna_beseda)
-        if pogoj(metadata, hash) == False:
-            continue
-        
-        if "cPages" not in content:
-            continue
         pages = content["cPages"]["pages"] # list of dicts
         sorted_pages = sorted(pages, key=lambda x: x["idx"]["value"])
+        old_pages = get_old_pages(hash)
 
-        pdfs_to_join = make_pdfs_to_join(ime, sorted_pages)
-        # pdfs_to_join = []
-        # for file in os.listdir(zacasna_mapa):
-        #     if file == "":
-        #         continue
-        #     file_path = os.path.join(zacasna_mapa, file)
-        #     pdfs_to_join.append(file_path)
+        pdfs_to_join = make_pdfs_to_join(ime, sorted_pages, old_pages, metadata)
 
         if pdfs_to_join == []:
             continue
         
-        join_pdfs(pdfs_to_join, visible_name, family)
+        join_pdfs(pdfs_to_join, metadata)
         
-        generate_metadata(hash, visible_name, family, mod_time)
-        # add_metadata(family, visible_name, mod_time)
-        # Add metadata here
+        generate_metadata(metadata, pages, hash)
         
     return
 
