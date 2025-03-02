@@ -1,8 +1,8 @@
 import os
 import time
 import json
-from remarkable.spremenljivke import folder_out, metadata_file, old_path
-from remarkable.metadatanje import get_family, get_visible_name_brez_klb
+from spremenljivke import folder_out, metadata_file, old_path
+from metadatanje import get_family, get_visible_name_brez_klb
         
 def ensure_folder_and_metadata_exists(folder_out, metadata_file):
     if os.path.exists(folder_out) == False:
@@ -33,7 +33,7 @@ def get_old_pdf(metadata):
     family = get_family(metadata)
     path = os.path.join(folder_out, *family, name + ".pdf")
     if os.path.exists(path):
-        return
+        return path
     return
 
 def get_path(name, family):

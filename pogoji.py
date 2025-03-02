@@ -1,6 +1,6 @@
-from remarkable.spremenljivke import kljucna_beseda, old_path
-from remarkable.metadatanje import get_family
-from remarkable.zvezkanje import get_old_data
+from spremenljivke import kljucna_beseda, old_path
+from metadatanje import get_family
+from zvezkanje import get_old_data
 
 
 def find_kljucna_beseda(metadata, klb):

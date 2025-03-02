@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from remarkable.spremenljivke import path, kljucna_beseda, folder_out, metadata_file
+from spremenljivke import path, kljucna_beseda, folder_out, metadata_file
 
 def get_metadata(ime):
     metadata_path = ime + ".metadata"

@@ -1,9 +1,9 @@
 import os
 from PyPDF2 import PdfWriter
-from remarkable.spremenljivke import path, folder_out, zacasna_mapa
-from remarkable.pogoji import pogoj
-from remarkable.zvezkanje import get_old_pdf, get_old_pages, ensure_folder_and_metadata_exists
-from remarkable.metadatanje import get_content, get_metadata, get_write_to_path, generate_metadata
+from spremenljivke import path, folder_out, zacasna_mapa
+from pogoji import pogoj
+from zvezkanje import get_old_pdf, get_old_pages, ensure_folder_and_metadata_exists
+from metadatanje import get_content, get_metadata, get_write_to_path, generate_metadata
 
 
 def clear_temoporary_folder(zacasna_mapa):
